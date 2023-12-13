@@ -1,4 +1,4 @@
-package org.example;
+package org.example.indexer;
 
 import java.util.ArrayList;
 import java.util.HashMap;

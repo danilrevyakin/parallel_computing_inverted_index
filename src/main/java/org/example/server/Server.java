@@ -1,4 +1,8 @@
-package org.example;
+package org.example.server;
+
+import org.example.indexer.IndexerThread;
+import org.example.indexer.InvertedIndex;
+import org.example.utils.FileHandler;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
