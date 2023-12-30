@@ -17,42 +17,23 @@ public class Client {
     }
 
     public void start() {
-        try (Socket socket = new Socket("localhost", 10000);
-             DataInputStream dis = new DataInputStream(socket.getInputStream());
-             DataOutputStream dos = new DataOutputStream(socket.getOutputStream())) {
+        try (
+                Socket socket = new Socket("localhost", 10000);
+                DataInputStream dis = new DataInputStream(socket.getInputStream());
+                DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+                Scanner scanner = new Scanner(System.in)
+        ) {
 
-            boolean isIndexed = dis.readBoolean();
-            if (!isIndexed) {
-                logger.log(Level.WARNING, "Server indicates that files require indexing");
-                int numberOfThreads = 4; // You can adjust this based on your needs
-                dos.writeInt(numberOfThreads);
-
-                String indexingMessage = dis.readUTF();
-                logger.log(Level.INFO, indexingMessage);
-            } else {
-                logger.log(Level.INFO, "Server indicates that files are already indexed");
-            }
-
-            // Client word search logic
-            Scanner scanner = new Scanner(System.in);
-            do {
-                System.out.print("Enter a word to search (or 'exit' to end): ");
-                String word = scanner.nextLine();
-
-                dos.writeUTF(word);
-
-                String response = dis.readUTF();
-                if (response.equals("no files found")) {
-                    logger.log(Level.WARNING, "No files found for the word: " + word);
-                } else {
-                    logger.log(Level.INFO, "Files found for the word '" + word + "': " + response);
+            String response;
+            while (true) {
+                response = dis.readUTF();
+                System.out.println(response);
+                if (response.contains("Disconnected")){
+                    break;
                 }
-
-                System.out.print("Do you want to find one more word? (y/n): ");
-                String moreWord = scanner.nextLine();
-                dos.writeUTF(moreWord);
-
-            } while (!"exit".equalsIgnoreCase(scanner.nextLine()));
+                System.out.print("Your input: ");
+                dos.writeUTF(scanner.nextLine());
+            }
 
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getLocalizedMessage(), e);

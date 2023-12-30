@@ -13,7 +13,8 @@ public enum Messaging {
     EXECUTION_TIME("Indexing execution time: "),
     INDEX_READY("Index is ready!"),
     INDEX_NOT_READY("Index hasn't been populated yet"),
-    ENTER_WORD("Enter word: ");
+    ENTER_WORD("Enter word: "),
+    DISCONNECT("Disconnected successfully!");
 
     private final String title;
 

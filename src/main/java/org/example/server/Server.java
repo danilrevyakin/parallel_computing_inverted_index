@@ -64,10 +64,10 @@ public class Server {
                             boolean updated = isIndexingInProcess.compareAndSet(false, true);
                             if (updated){
                                 dos.writeUTF(Messaging.REQUIRE_INDEXING.get());
-                                int numberOfThreads = dis.readInt();
+                                int numberOfThreads = Integer.parseInt(dis.readUTF());
 
                                 Long time = processIndexing(numberOfThreads);
-                                isIndexed.set(true);
+                                isIndexed.compareAndSet(false, true);
 
                                 logger.log(Level.INFO,Messaging.EXECUTION_TIME.get() + time);
                                 dos.writeUTF(Messaging.EXECUTION_TIME.get() + time);
@@ -80,7 +80,10 @@ public class Server {
                             isIndexed.get() ? Messaging.INDEX_READY.get() : Messaging.INDEX_NOT_READY.get()
                     );
                     case "3" -> dos.writeUTF(Messaging.OPTIONS.get());
-                    case "4" -> disconnect = true;
+                    case "4" -> {
+                        disconnect = true;
+                        dos.writeUTF(Messaging.DISCONNECT.get());
+                    }
                 }
             }
 

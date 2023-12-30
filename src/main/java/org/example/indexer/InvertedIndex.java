@@ -33,7 +33,7 @@ public class InvertedIndex {
     public Position getPositions(String word){
         indexLock.readLock().lock();
         try {
-            return index.get(word);
+            return index.getOrDefault(word, new Position());
         } finally {
             indexLock.readLock().unlock();
         }
