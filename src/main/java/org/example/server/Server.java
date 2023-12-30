@@ -2,6 +2,7 @@ package org.example.server;
 
 import org.example.indexer.IndexerThread;
 import org.example.indexer.InvertedIndex;
+import org.example.indexer.Position;
 import org.example.utils.FileHandler;
 
 import java.io.DataInputStream;
@@ -10,7 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -58,28 +58,19 @@ public class Server {
                         if (isIndexed.get()) {
                             dos.writeUTF(Messaging.ENTER_WORD.get());
                             word = dis.readUTF();
-                            try{
-                                HashMap<String, List<Integer>> indexedFiles = invertedIndex.getWord(word);
-                                dos.writeUTF(indexedFiles.toString());
-                            } catch (Exception e){
-                                logger.log(Level.WARNING, e.getMessage());
-                                dos.writeUTF(e.getMessage());
-                            }
+                            Position pos = invertedIndex.getPositions(word);
+                            dos.writeUTF(pos.toString());
                         } else {
                             boolean updated = isIndexingInProcess.compareAndSet(false, true);
                             if (updated){
                                 dos.writeUTF(Messaging.REQUIRE_INDEXING.get());
-
                                 int numberOfThreads = dis.readInt();
-                                CompletableFuture<Long> future = CompletableFuture.supplyAsync(() ->
-                                        processIndexing(numberOfThreads)
-                                );
 
-                                Long time = future.resultNow();
+                                Long time = processIndexing(numberOfThreads);
                                 isIndexed.set(true);
+
                                 logger.log(Level.INFO,Messaging.EXECUTION_TIME.get() + time);
                                 dos.writeUTF(Messaging.EXECUTION_TIME.get() + time);
-
                             } else {
                                 dos.writeUTF(Messaging.IN_PROCESS.get());
                             }
@@ -101,8 +92,6 @@ public class Server {
     }
 
     public Long processIndexing(int threadsNumber) {
-        logger.log(Level.INFO, "Start indexing files...");
-
         ExecutorService executor = Executors.newFixedThreadPool(threadsNumber);
         CompletionService<Void> completionService = new ExecutorCompletionService<>(executor);
 
@@ -123,7 +112,7 @@ public class Server {
             try {
                 completionService.take();
             } catch (InterruptedException e) {
-                logger.log(Level.SEVERE, e.getMessage());
+                System.out.println(e.getMessage());
                 e.printStackTrace();
             }
         }

@@ -24,7 +24,7 @@ public class IndexerThread implements Callable<Void> {
 
             for (int i = 0; i < list.size(); i++) {
                 String word = list.get(i);
-                invertedIndex.add(word, file.getName(), i);
+                invertedIndex.addWord(word, file.getName(), i);
             }
         }
         return null;

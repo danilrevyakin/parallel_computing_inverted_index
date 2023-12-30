@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class InvertedIndex {
-    private final HashMap<String, HashMap<String, List<Integer>>> index;
+    private final HashMap<String, Position> index;
     private final ReadWriteLock indexLock;
 
     public InvertedIndex() {
@@ -15,36 +15,27 @@ public class InvertedIndex {
         this.indexLock = new ReentrantReadWriteLock();
     }
 
-    public void add(String word, String filename, int position) {
+    public void addWord(String word, String filename, int position) {
         indexLock.writeLock().lock();
         try {
-            HashMap<String, List<Integer>> fileMap = index.getOrDefault(word, new HashMap<>());
-            List<Integer> positions = fileMap.getOrDefault(filename, new ArrayList<>());
+            Position pos = index.getOrDefault(word, new Position());
+            List<Integer> positions = new ArrayList<>(
+                    pos.getMap().getOrDefault(filename, new ArrayList<>())
+            );
             positions.add(position);
-            fileMap.put(filename, positions);
-            index.put(word, fileMap);
+            pos.getMap().put(filename, positions);
+            index.put(word, pos);
         } finally {
             indexLock.writeLock().unlock();
         }
     }
 
-    public HashMap<String, List<Integer>> getWord(String word) throws WordNotFoundException {
+    public Position getPositions(String word){
         indexLock.readLock().lock();
         try {
-            HashMap<String, List<Integer>> fileMap = index.get(word);
-            if (fileMap == null) {
-                throw new WordNotFoundException("Word " + word + " not found in the index.");
-            } else {
-                return new HashMap<>(fileMap);
-            }
+            return index.get(word);
         } finally {
             indexLock.readLock().unlock();
-        }
-    }
-
-    public static class WordNotFoundException extends Exception {
-        public WordNotFoundException(String message) {
-            super(message);
         }
     }
 }
