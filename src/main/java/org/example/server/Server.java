@@ -18,15 +18,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Server {
+    private static final int SERVER_PORT = 10000;
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
     private final InvertedIndex invertedIndex = new InvertedIndex();
     private static final Logger logger = Logger.getLogger(Server.class.getName());
     private final AtomicBoolean isIndexed = new AtomicBoolean(false);
-    private final Object indexingLock = new Object();
+    private final AtomicBoolean isIndexingInProcess = new AtomicBoolean(false);
 
     public void start() {
-        try (ServerSocket serverSocket = new ServerSocket(10000)) {
-           logger.log(Level.INFO, "Server started on port 10000");
+        try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
+           logger.log(Level.INFO, "Server started on port " + SERVER_PORT);
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 logger.log(Level.INFO,"Client connected: " + clientSocket);
@@ -45,47 +46,53 @@ public class Server {
                 DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream())
         ) {
 
-            synchronized (indexingLock) {
-                dos.writeBoolean(isIndexed.get());
-                if (!isIndexed.get()) {
-                    logger.log(Level.WARNING, "Files require indexing");
-                    indexingLock.notifyAll();
+            String command;
+            String word;
+            boolean disconnect = false;
 
-                    int numberOfThreads = dis.readInt();
-                    CompletableFuture<Long> future = CompletableFuture.supplyAsync(() ->
-                            processIndexing(numberOfThreads)
-                    );
+            dos.writeUTF(Messaging.OPTIONS.get());
+            while (!disconnect){
+                command = dis.readUTF();
+                switch (command) {
+                    case "1" -> {
+                        if (isIndexed.get()) {
+                            dos.writeUTF(Messaging.ENTER_WORD.get());
+                            word = dis.readUTF();
+                            try{
+                                HashMap<String, List<Integer>> indexedFiles = invertedIndex.getWord(word);
+                                dos.writeUTF(indexedFiles.toString());
+                            } catch (Exception e){
+                                logger.log(Level.WARNING, e.getMessage());
+                                dos.writeUTF(e.getMessage());
+                            }
+                        } else {
+                            boolean updated = isIndexingInProcess.compareAndSet(false, true);
+                            if (updated){
+                                dos.writeUTF(Messaging.REQUIRE_INDEXING.get());
 
-                    try {
-                        indexingLock.wait();
-                    } catch (InterruptedException e) {
-                        logger.log(Level.SEVERE, "Interrupted while waiting for indexing", e);
+                                int numberOfThreads = dis.readInt();
+                                CompletableFuture<Long> future = CompletableFuture.supplyAsync(() ->
+                                        processIndexing(numberOfThreads)
+                                );
+
+                                Long time = future.resultNow();
+                                isIndexed.set(true);
+                                logger.log(Level.INFO,Messaging.EXECUTION_TIME.get() + time);
+                                dos.writeUTF(Messaging.EXECUTION_TIME.get() + time);
+
+                            } else {
+                                dos.writeUTF(Messaging.IN_PROCESS.get());
+                            }
+                        }
                     }
-
-                    Long time = future.resultNow();
-                    isIndexed.set(true);
-                    logger.log(Level.INFO, "Indexing execution time: " + time);
-                    dos.writeUTF("Indexing execution time: " + time);
+                    case "2" -> dos.writeUTF(
+                            isIndexed.get() ? Messaging.INDEX_READY.get() : Messaging.INDEX_NOT_READY.get()
+                    );
+                    case "3" -> dos.writeUTF(Messaging.OPTIONS.get());
+                    case "4" -> disconnect = true;
                 }
             }
 
-            boolean findOneMoreWord;
-
-            do {
-                String word = dis.readUTF();
-                logger.log(Level.INFO,"Client want to find such word: " + word);
-                try{
-                    HashMap<String, List<Integer>> indexedFiles = invertedIndex.getWord(word);
-                    logger.log(Level.INFO, "Files were found for word '" + word + "'");
-                    dos.writeUTF(indexedFiles.toString());
-                } catch (Exception e){
-                    logger.log(Level.WARNING,"No files found for this word");
-                    dos.writeUTF("no files found");
-                }
-
-                findOneMoreWord = dis.readUTF().equalsIgnoreCase("y");
-                logger.log(Level.INFO,"Client " + (findOneMoreWord ? "" : "don't ") + "want to find one more word");
-            } while (findOneMoreWord);
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage());
             e.printStackTrace();
@@ -121,12 +128,7 @@ public class Server {
             }
         }
         executor.shutdown();
-        Long result = System.currentTimeMillis() - currentTime;
 
-        synchronized (indexingLock){
-            indexingLock.notifyAll();
-        }
-
-        return result;
+        return System.currentTimeMillis() - currentTime;
     }
 }
