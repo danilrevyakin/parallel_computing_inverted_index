@@ -58,6 +58,10 @@ public class Server {
                         if (isIndexed.get()) {
                             dos.writeUTF(Messaging.ENTER_WORD.get());
                             word = dis.readUTF();
+                            if (!word.matches("^[a-zA-Z ]+$")) {
+                                dos.writeUTF(Messaging.WRONG_INPUT.get() + Messaging.WRONG_STRING.get());
+                                break;
+                            }
                             logger.log(Level.INFO,"Client " + clientSocket + " entered phrase: " + word);
                             Position pos = invertedIndex.getPositions(word);
                             dos.writeUTF(pos.toString());
@@ -65,7 +69,21 @@ public class Server {
                             boolean updated = isIndexingInProcess.compareAndSet(false, true);
                             if (updated){
                                 dos.writeUTF(Messaging.REQUIRE_INDEXING.get());
-                                int numberOfThreads = Integer.parseInt(dis.readUTF());
+
+                                int numberOfThreads;
+                                try {
+                                    numberOfThreads = Integer.parseInt(dis.readUTF());
+                                    if (numberOfThreads <= 0) {
+                                        dos.writeUTF(Messaging.WRONG_INPUT.get() + Messaging.WRONG_INTEGER.get());
+                                        isIndexingInProcess.compareAndSet(true, false);
+                                        break;
+                                    }
+                                } catch (Exception e) {
+                                    dos.writeUTF(Messaging.WRONG_INPUT.get() + Messaging.WRONG_INTEGER.get());
+                                    isIndexingInProcess.compareAndSet(true, false);
+                                    break;
+                                }
+
                                 logger.log(
                                         Level.INFO,"Client " + clientSocket
                                         + " entered num of threads for indexing: " + numberOfThreads
@@ -98,6 +116,7 @@ public class Server {
                         disconnect = true;
                         dos.writeUTF(Messaging.DISCONNECT.get());
                     }
+                    default -> dos.writeUTF(Messaging.WRONG_COMMAND.get());
                 }
             }
 

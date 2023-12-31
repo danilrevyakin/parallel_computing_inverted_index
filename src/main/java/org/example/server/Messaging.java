@@ -15,7 +15,11 @@ public enum Messaging {
     INDEX_NOT_READY("Index hasn't been populated yet"),
     ENTER_WORD("Please enter a word/phrase"),
     DISCONNECT("Disconnected successfully!"),
-    INDEXING_ERROR("Error occurred while indexing. Please try again later");
+    INDEXING_ERROR("Error occurred while indexing. Please try again later"),
+    WRONG_COMMAND("You submitted invalid command. Try again please"),
+    WRONG_INPUT("You submitted invalid input. Input must contain "),
+    WRONG_INTEGER("integer with value >= 0"),
+    WRONG_STRING("only word characters with whitespaces (if required)");
 
     private final String title;
 
