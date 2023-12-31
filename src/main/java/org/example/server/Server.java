@@ -27,10 +27,10 @@ public class Server {
 
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
-           logger.log(Level.INFO, "Server started on port " + SERVER_PORT);
+            logger.log(Level.INFO, "Server started on port " + SERVER_PORT);
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                logger.log(Level.INFO,"Client connected: " + clientSocket);
+                logger.log(Level.INFO, "Client connected: " + clientSocket);
                 threadPool.submit(() -> handleClient(clientSocket));
             }
         } catch (IOException e) {
@@ -51,7 +51,7 @@ public class Server {
             boolean disconnect = false;
 
             dos.writeUTF(Messaging.OPTIONS.get());
-            while (!disconnect){
+            while (!disconnect) {
                 command = dis.readUTF();
                 switch (command) {
                     case "1" -> {
@@ -62,12 +62,12 @@ public class Server {
                                 dos.writeUTF(Messaging.WRONG_INPUT.get() + Messaging.WRONG_STRING.get());
                                 break;
                             }
-                            logger.log(Level.INFO,"Client " + clientSocket + " entered phrase: " + word);
+                            logger.log(Level.INFO, "Client " + clientSocket + " entered phrase: " + word);
                             Position pos = invertedIndex.getPositions(word);
                             dos.writeUTF(pos.toString());
                         } else {
                             boolean updated = isIndexingInProcess.compareAndSet(false, true);
-                            if (updated){
+                            if (updated) {
                                 dos.writeUTF(Messaging.REQUIRE_INDEXING.get());
 
                                 int numberOfThreads;
@@ -85,15 +85,15 @@ public class Server {
                                 }
 
                                 logger.log(
-                                        Level.INFO,"Client " + clientSocket
-                                        + " entered num of threads for indexing: " + numberOfThreads
+                                        Level.INFO, "Client " + clientSocket
+                                                + " entered num of threads for indexing: " + numberOfThreads
                                 );
 
                                 try {
                                     Long time = processIndexing(numberOfThreads);
                                     isIndexed.compareAndSet(false, true);
 
-                                    logger.log(Level.INFO,Messaging.EXECUTION_TIME.get() + time);
+                                    logger.log(Level.INFO, Messaging.EXECUTION_TIME.get() + time);
                                     dos.writeUTF(Messaging.EXECUTION_TIME.get() + time);
                                 } catch (InterruptedException e) {
                                     logger.log(Level.SEVERE, e.getLocalizedMessage());
@@ -123,7 +123,7 @@ public class Server {
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage());
         }
-        logger.log(Level.INFO,"Client " + clientSocket + " disconnected");
+        logger.log(Level.INFO, "Client " + clientSocket + " disconnected");
     }
 
     public Long processIndexing(int threadsNumber) throws InterruptedException {

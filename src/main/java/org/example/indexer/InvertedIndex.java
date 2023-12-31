@@ -75,7 +75,7 @@ public class InvertedIndex {
         Position result = new Position();
         for (Map.Entry<String, List<Integer>> entry : positions1.getMap().entrySet()) {
             String word = entry.getKey();
-            if (positions2.getMap().containsKey(word)){
+            if (positions2.getMap().containsKey(word)) {
                 List<Integer> mergedList = new ArrayList<>();
 
                 int i = 0, j = 0;
