@@ -27,11 +27,11 @@ public class Client {
             String response;
             while (true) {
                 response = dis.readUTF();
-                System.out.println(response);
+                System.out.println("[SERVER]: " + response);
                 if (response.contains("Disconnected")){
                     break;
                 }
-                System.out.print("Your input: ");
+                System.out.print("Enter >>> ");
                 dos.writeUTF(scanner.nextLine());
             }
 

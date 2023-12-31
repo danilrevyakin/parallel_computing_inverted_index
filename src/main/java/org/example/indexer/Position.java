@@ -23,8 +23,10 @@ public class Position {
             StringBuilder sb = new StringBuilder();
             sb.append("Found:\n");
             for (Map.Entry<String, List<Integer>> entry : map.entrySet()) {
-                sb.append("\t* [").append(entry.getKey()).append("] positions: ");
-                sb.append(entry.getValue()).append(";\n");
+                if (!entry.getValue().isEmpty()){
+                    sb.append("\t* {").append(entry.getKey()).append("} positions: ");
+                    sb.append(entry.getValue()).append(";\n");
+                }
             }
             return sb.toString().trim();
         }
