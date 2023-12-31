@@ -34,7 +34,7 @@ public class Server {
                 threadPool.submit(() -> handleClient(clientSocket));
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, e.getMessage());
             threadPool.shutdownNow();
         }
     }
@@ -58,6 +58,7 @@ public class Server {
                         if (isIndexed.get()) {
                             dos.writeUTF(Messaging.ENTER_WORD.get());
                             word = dis.readUTF();
+                            logger.log(Level.INFO,"Client " + clientSocket + " entered phrase: " + word);
                             Position pos = invertedIndex.getPositions(word);
                             dos.writeUTF(pos.toString());
                         } else {
@@ -65,6 +66,10 @@ public class Server {
                             if (updated){
                                 dos.writeUTF(Messaging.REQUIRE_INDEXING.get());
                                 int numberOfThreads = Integer.parseInt(dis.readUTF());
+                                logger.log(
+                                        Level.INFO,"Client " + clientSocket
+                                        + " entered num of threads for indexing: " + numberOfThreads
+                                );
 
                                 Long time = processIndexing(numberOfThreads);
                                 isIndexed.compareAndSet(false, true);
@@ -77,7 +82,9 @@ public class Server {
                         }
                     }
                     case "2" -> dos.writeUTF(
-                            isIndexed.get() ? Messaging.INDEX_READY.get() : Messaging.INDEX_NOT_READY.get()
+                            isIndexed.get() ? Messaging.INDEX_READY.get() :
+                                    isIndexingInProcess.get() ? Messaging.IN_PROCESS.get() :
+                                            Messaging.INDEX_NOT_READY.get()
                     );
                     case "3" -> dos.writeUTF(Messaging.OPTIONS.get());
                     case "4" -> {
@@ -89,7 +96,6 @@ public class Server {
 
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage());
-            e.printStackTrace();
         }
         logger.log(Level.INFO,"Client " + clientSocket + " disconnected");
     }

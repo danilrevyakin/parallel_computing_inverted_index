@@ -5,12 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 
 public class Client {
-    private static final Logger logger = Logger.getLogger(Client.class.getName());
-
     public static void main(String[] args) {
         Client client = new Client();
         client.start();
@@ -36,7 +33,7 @@ public class Client {
             }
 
         } catch (IOException e) {
-            logger.log(Level.SEVERE, e.getLocalizedMessage(), e);
+            System.out.println(e.getLocalizedMessage());
         }
     }
 }
