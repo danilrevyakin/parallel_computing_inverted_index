@@ -1,10 +1,8 @@
 package org.example.indexer;
 
-import javax.xml.transform.Result;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 public class InvertedIndex {
     private final HashMap<String, Position> index;
@@ -18,13 +16,9 @@ public class InvertedIndex {
     public void addWord(String word, String filename, int position) {
         indexLock.writeLock().lock();
         try {
-            Position pos = index.getOrDefault(word, new Position());
-            List<Integer> positions = new ArrayList<>(
-                    pos.getMap().getOrDefault(filename, new ArrayList<>())
-            );
+            Position pos = index.computeIfAbsent(word, k -> new Position());
+            List<Integer> positions = pos.getMap().computeIfAbsent(filename, k -> new ArrayList<>());
             positions.add(position);
-            pos.getMap().put(filename, positions);
-            index.put(word, pos);
         } finally {
             indexLock.writeLock().unlock();
         }
@@ -40,6 +34,15 @@ public class InvertedIndex {
             return searchPhraseRecursive(words, 0);
         } finally {
             indexLock.readLock().unlock();
+        }
+    }
+
+    public void clear() {
+        indexLock.writeLock().lock();
+        try {
+            index.clear();
+        } finally {
+            indexLock.writeLock().unlock();
         }
     }
 

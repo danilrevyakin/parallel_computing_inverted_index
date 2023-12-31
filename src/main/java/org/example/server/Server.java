@@ -71,11 +71,18 @@ public class Server {
                                         + " entered num of threads for indexing: " + numberOfThreads
                                 );
 
-                                Long time = processIndexing(numberOfThreads);
-                                isIndexed.compareAndSet(false, true);
+                                try {
+                                    Long time = processIndexing(numberOfThreads);
+                                    isIndexed.compareAndSet(false, true);
 
-                                logger.log(Level.INFO,Messaging.EXECUTION_TIME.get() + time);
-                                dos.writeUTF(Messaging.EXECUTION_TIME.get() + time);
+                                    logger.log(Level.INFO,Messaging.EXECUTION_TIME.get() + time);
+                                    dos.writeUTF(Messaging.EXECUTION_TIME.get() + time);
+                                } catch (InterruptedException e) {
+                                    logger.log(Level.SEVERE, e.getLocalizedMessage());
+                                    invertedIndex.clear();
+                                    isIndexingInProcess.compareAndSet(true, false);
+                                    dos.writeUTF(Messaging.INDEXING_ERROR.get());
+                                }
                             } else {
                                 dos.writeUTF(Messaging.IN_PROCESS.get());
                             }
@@ -100,7 +107,7 @@ public class Server {
         logger.log(Level.INFO,"Client " + clientSocket + " disconnected");
     }
 
-    public Long processIndexing(int threadsNumber) {
+    public Long processIndexing(int threadsNumber) throws InterruptedException {
         ExecutorService executor = Executors.newFixedThreadPool(threadsNumber);
         CompletionService<Void> completionService = new ExecutorCompletionService<>(executor);
 
@@ -118,12 +125,7 @@ public class Server {
         }
 
         for (int i = 0; i < threadsNumber; i++) {
-            try {
-                completionService.take();
-            } catch (InterruptedException e) {
-                System.out.println(e.getMessage());
-                e.printStackTrace();
-            }
+            completionService.take();
         }
         executor.shutdown();
 

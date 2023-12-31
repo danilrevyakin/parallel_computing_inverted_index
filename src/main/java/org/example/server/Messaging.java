@@ -14,7 +14,8 @@ public enum Messaging {
     INDEX_READY("Index is ready!"),
     INDEX_NOT_READY("Index hasn't been populated yet"),
     ENTER_WORD("Please enter a word/phrase"),
-    DISCONNECT("Disconnected successfully!");
+    DISCONNECT("Disconnected successfully!"),
+    INDEXING_ERROR("Error occurred while indexing. Please try again later");
 
     private final String title;
 
