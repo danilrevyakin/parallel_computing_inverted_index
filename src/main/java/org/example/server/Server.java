@@ -1,18 +1,18 @@
 package org.example.server;
 
-import org.example.indexer.IndexerThread;
+import org.example.indexer.Indexer;
 import org.example.indexer.InvertedIndex;
-import org.example.indexer.Position;
-import org.example.utils.FileHandler;
+import org.example.indexer.entities.Position;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,6 +24,12 @@ public class Server {
     private static final Logger logger = Logger.getLogger(Server.class.getName());
     private final AtomicBoolean isIndexed = new AtomicBoolean(false);
     private final AtomicBoolean isIndexingInProcess = new AtomicBoolean(false);
+
+
+    public static void main(String[] args){
+        Server server = new Server();
+        server.start();
+    }
 
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
@@ -90,12 +96,16 @@ public class Server {
                                 );
 
                                 try {
-                                    Long time = processIndexing(numberOfThreads);
+                                    FutureTask<Double> future = new FutureTask<> (
+                                            new Indexer(invertedIndex, numberOfThreads)
+                                    );
+                                    new Thread(future).start();
+                                    double time = future.get();
                                     isIndexed.compareAndSet(false, true);
 
                                     logger.log(Level.INFO, Messaging.EXECUTION_TIME.get() + time);
                                     dos.writeUTF(Messaging.EXECUTION_TIME.get() + time);
-                                } catch (InterruptedException e) {
+                                } catch (InterruptedException | ExecutionException e) {
                                     logger.log(Level.SEVERE, e.getLocalizedMessage());
                                     invertedIndex.clear();
                                     isIndexingInProcess.compareAndSet(true, false);
@@ -124,30 +134,5 @@ public class Server {
             logger.log(Level.SEVERE, e.getMessage());
         }
         logger.log(Level.INFO, "Client " + clientSocket + " disconnected");
-    }
-
-    public Long processIndexing(int threadsNumber) throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(threadsNumber);
-        CompletionService<Void> completionService = new ExecutorCompletionService<>(executor);
-
-        List<File> files = FileHandler.getAllFiles();
-        int batchSize = files.size() / threadsNumber;
-
-        long currentTime = System.currentTimeMillis();
-        for (int i = 0; i < threadsNumber; i++) {
-            List<File> sublist = files.subList(
-                    batchSize * i,
-                    i == threadsNumber - 1 ? files.size() : batchSize * (i + 1)
-            );
-            IndexerThread task = new IndexerThread(sublist, invertedIndex);
-            completionService.submit(task);
-        }
-
-        for (int i = 0; i < threadsNumber; i++) {
-            completionService.take();
-        }
-        executor.shutdown();
-
-        return System.currentTimeMillis() - currentTime;
     }
 }

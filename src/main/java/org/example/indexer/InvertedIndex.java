@@ -1,49 +1,36 @@
 package org.example.indexer;
 
-import java.util.*;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.example.indexer.entities.CustomThreadSafeMap;
+import org.example.indexer.entities.Position;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class InvertedIndex {
-    private final HashMap<String, Position> index;
-    private final ReadWriteLock indexLock;
+    private final CustomThreadSafeMap<String, Position> index;
 
     public InvertedIndex() {
-        this.index = new HashMap<>();
-        this.indexLock = new ReentrantReadWriteLock();
+        this.index = new CustomThreadSafeMap<>();
     }
 
     public void addWord(String word, String filename, int position) {
-        indexLock.writeLock().lock();
-        try {
-            Position pos = index.computeIfAbsent(word, k -> new Position());
-            List<Integer> positions = pos.getMap().computeIfAbsent(filename, k -> new ArrayList<>());
-            positions.add(position);
-        } finally {
-            indexLock.writeLock().unlock();
-        }
+        Position pos = index.computeIfAbsent(word, k -> new Position());
+        List<Integer> positions = pos.getMap().computeIfAbsent(filename, k -> new ArrayList<>());
+        positions.add(position);
     }
 
     public Position getPositions(String phrase) {
-        indexLock.readLock().lock();
-        try {
-            List<String> words = Arrays.stream(phrase.split("\\W"))
-                    .filter(str -> !str.isEmpty())
-                    .map(String::toLowerCase)
-                    .toList();
-            return searchPhraseRecursive(words, 0);
-        } finally {
-            indexLock.readLock().unlock();
-        }
+        List<String> words = Arrays.stream(phrase.split("\\W"))
+                .filter(str -> !str.isEmpty())
+                .map(String::toLowerCase)
+                .toList();
+        return searchPhraseRecursive(words, 0);
     }
 
     public void clear() {
-        indexLock.writeLock().lock();
-        try {
-            index.clear();
-        } finally {
-            indexLock.writeLock().unlock();
-        }
+        index.clear();
     }
 
     private Position searchPhraseRecursive(List<String> words, int index) {
@@ -51,24 +38,13 @@ public class InvertedIndex {
             return getPositionsForWord(words.get(index));
         } else {
             Position currentPositions = getPositionsForWord(words.get(index));
-            Position remainingPositions;
-            indexLock.readLock().lock();
-            try {
-                remainingPositions = searchPhraseRecursive(words, index + 1);
-            } finally {
-                indexLock.readLock().unlock();
-            }
+            Position remainingPositions = searchPhraseRecursive(words, index + 1);
             return mergePositions(currentPositions, remainingPositions);
         }
     }
 
     private Position getPositionsForWord(String word) {
-        indexLock.readLock().lock();
-        try {
-            return index.getOrDefault(word, new Position());
-        } finally {
-            indexLock.readLock().unlock();
-        }
+        return index.getOrDefault(word, new Position());
     }
 
     private Position mergePositions(Position positions1, Position positions2) {

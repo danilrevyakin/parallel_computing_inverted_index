@@ -1,17 +1,18 @@
-package org.example.indexer;
+package org.example.indexer.entities;
 
-import java.util.HashMap;
+import org.example.indexer.entities.CustomThreadSafeMap;
+
 import java.util.List;
 import java.util.Map;
 
 public class Position {
-    private final Map<String, List<Integer>> map;
+    private final CustomThreadSafeMap<String, List<Integer>> map;
 
     public Position() {
-        this.map = new HashMap<>();
+        this.map = new CustomThreadSafeMap<>();
     }
 
-    public Map<String, List<Integer>> getMap() {
+    public CustomThreadSafeMap<String, List<Integer>> getMap() {
         return map;
     }
 
