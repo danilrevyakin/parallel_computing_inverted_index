@@ -19,6 +19,7 @@ import java.util.logging.Logger;
 
 public class Server {
     private static final int SERVER_PORT = 10000;
+    private static final boolean setTimeout = true;
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
     private final InvertedIndex invertedIndex = new InvertedIndex();
     private static final Logger logger = Logger.getLogger(Server.class.getName());
@@ -100,8 +101,12 @@ public class Server {
                                             new Indexer(invertedIndex, numberOfThreads)
                                     );
                                     new Thread(future).start();
+                                    if (setTimeout) {
+                                        Thread.sleep(20000);
+                                    }
                                     double time = future.get();
                                     isIndexed.compareAndSet(false, true);
+                                    isIndexingInProcess.compareAndSet(true, false);
 
                                     logger.log(Level.INFO, Messaging.EXECUTION_TIME.get() + time);
                                     dos.writeUTF(Messaging.EXECUTION_TIME.get() + time);
