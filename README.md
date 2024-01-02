@@ -20,12 +20,12 @@ javac -d tmpclasses src/main/java/org/example/*/**/*.java -Xlint:unchecked
 ### Server
 To launch server, run the following command:
 ```bash
-java tmpclasses.org.example.server.Server    
+java -cp tmpclasses org.example.server.Server    
 ```
 ### Client
 1. To launch client, run the following command:
 ```bash
-java tmpclasses.org.example.client.Client    
+java -cp tmpclasses org.example.client.Client    
 ```
 2. Start comminication with server by specifying presentented options 
 
